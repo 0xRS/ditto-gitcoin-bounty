@@ -4,6 +4,10 @@ import json
 import requests
 import csv
 from prettytable import PrettyTable
+
+from dotenv import load_dotenv
+from os import getenv
+
 infura_id = "60e52c2fc2764ffab5385cc6342fca3a"
 
 def print_deposit_events(ditto_contract, fromBlock, toBlock):
@@ -25,10 +29,15 @@ def print_deposit_events(ditto_contract, fromBlock, toBlock):
         x.add_row(row)
     f.close()
     print(x)
-abi = json.load(open('abi.json', 'r'))
-contract_address = "0xFDaCD496EfFB198C81Fb5E74F156e889f4ecCF91"
-w3r = Web3(Web3.HTTPProvider('https://ropsten.infura.io/v3/'+infura_id))
-w3b = Web3(Web3.HTTPProvider('https://bsc-dataseed.binance.org/'))
-ditto_contract = w3r.eth.contract(address=contract_address, abi=abi)
 
-print_deposit_events(ditto_contract, 1, 1000000000)
+
+def main():
+    abi = json.load(open('abi.json', 'r'))
+    contract_address = "0xFDaCD496EfFB198C81Fb5E74F156e889f4ecCF91"
+    w3r = Web3(Web3.HTTPProvider('https://ropsten.infura.io/v3/'+infura_id))
+    w3b = Web3(Web3.HTTPProvider('https://bsc-dataseed.binance.org/'))
+    ditto_contract = w3r.eth.contract(address=contract_address, abi=abi)
+    print_deposit_events(ditto_contract, 1, 1000000000)
+
+if __name__ == '__main__':
+    main()
