@@ -30,3 +30,6 @@ On prompt choose between ```historical swaps``` and ```real time swaps```
 ![Alt text](ditto-real-time.png)
 
 ![Alt text](ditto-real-time2.png)
+
+
+### In case of any problems or unclear instructions please file an issue.
