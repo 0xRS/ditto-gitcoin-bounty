@@ -1,4 +1,4 @@
-WIP
+## Updating usage instructions
 
 ### Export Historical Swaps Output
 
