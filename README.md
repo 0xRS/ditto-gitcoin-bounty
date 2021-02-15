@@ -4,6 +4,11 @@
 
 ```pip install -r requirements.txt```
 
+### Update env variables
+
+Copy ```sample.env``` to ```.env``` and input the missing values. ```ditto_erc20``` variable refers to the ditto erc20 on bsc.
+
+
 # Sample Output
 
 ### Export Historical Swaps Output
