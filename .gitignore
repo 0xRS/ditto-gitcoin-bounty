@@ -1,3 +1,4 @@
 .env
 *.csv
 cursestest.py
+.DS_Store
