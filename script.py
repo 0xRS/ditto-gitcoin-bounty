@@ -16,7 +16,10 @@ from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.styles import Style
 from pygments.lexers.solidity import SolidityLexer
 from prompt_toolkit import print_formatted_text, HTML
+from halo import Halo
+from time import sleep
 
+@Halo(text='Sending DITTO Drops on BSC', spinner='dots')
 def send_tx(receiver, amount):
     ditto_erc20_address = getenv('ditto_erc20')
     pk = getenv('pk')
@@ -33,7 +36,15 @@ def send_tx(receiver, amount):
         'nonce': nonce,
     })
     signed_txn = w3b.eth.account.sign_transaction(tx, private_key=pk)
-    w3b.eth.sendRawTransaction(signed_txn.rawTransaction)
+    sent_tx = w3b.eth.sendRawTransaction(signed_txn.rawTransaction)
+    # wait for deployment transaction to be mined
+    while True:
+        try:
+            receipt = w3b.eth.getTransactionReceipt(sent_tx)
+            if receipt:
+                break
+        except:
+            sleep(1)
     # erc20.functions.transfer(str(receiver), int(amount)).transact({"from": acc})
 
 def check_to_send(tx_list, latest_block, confirmations):
@@ -56,6 +67,8 @@ def handle_event(e, tx_list, confirmations):
     input_amount = e['args']['inputAmount']
     output_amount = e['args']['outputAmount']
     tx = [block_number, depositor, input_token, input_amount, output_amount]
+    print(tx[1], tx[2], tx[3], tx[4])
+    print("-"*120)
     tx_list.append(tx)
 
 async def log_loop(event_filter, poll_interval, tx_list, confirmations):
@@ -63,8 +76,6 @@ async def log_loop(event_filter, poll_interval, tx_list, confirmations):
         infura_id = getenv('infura_id')
         w3r = Web3(Web3.HTTPProvider('https://ropsten.infura.io/v3/'+infura_id))
         latest_block = w3r.eth.getBlock('latest')['number']
-        print(latest_block)
-        print(tx_list)
         if(len(tx_list)>0):
             check_to_send(tx_list, latest_block, confirmations)
         # check_to_send(tx_list, latest_block, confirmations)
