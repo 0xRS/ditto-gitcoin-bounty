@@ -1,3 +1,6 @@
 web3
 csv
 PrettyTable
+dotenv
+prompt_toolkit
+halo
