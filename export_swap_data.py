@@ -36,7 +36,7 @@ def print_deposit_events(ditto_contract, fromBlock, toBlock, session):
         x.add_row(row)
     f.close()
     print(x)
-    print_formatted_text(HTML("<aaa fg='ansiwhite' bg='ansigreen'>&#2714; Saved to "+str(fromBlock)+"-"+str(toBlock)+".csv</aaa>"))
+    print_formatted_text(HTML("<aaa fg='ansiwhite' bg='ansigreen'>&#9989; Saved to "+str(fromBlock)+"-"+str(toBlock)+".csv</aaa>"))
 
 
 
