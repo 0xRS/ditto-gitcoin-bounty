@@ -7,4 +7,6 @@ WIP
 
 ### Real Time Swaps Output
 
-![Alt text](ditto-real-time-swap-sample-output.png)
+![Alt text](ditto-real-time.png)
+
+![Alt text](ditto-real-time2.png)

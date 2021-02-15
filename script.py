@@ -36,7 +36,12 @@ def send_tx(receiver, amount):
         'nonce': nonce,
     })
     signed_txn = w3b.eth.account.sign_transaction(tx, private_key=pk)
+
+    spinner = Halo(text='Sending Ditto Tokens to '+receiver, spinner='line')
+    spinner.start()
+
     sent_tx = w3b.eth.sendRawTransaction(signed_txn.rawTransaction)
+
     # wait for deployment transaction to be mined
     while True:
         try:
@@ -45,6 +50,7 @@ def send_tx(receiver, amount):
                 break
         except:
             sleep(1)
+    spinner.stop()
     # erc20.functions.transfer(str(receiver), int(amount)).transact({"from": acc})
 
 def check_to_send(tx_list, latest_block, confirmations):
@@ -67,9 +73,15 @@ def handle_event(e, tx_list, confirmations):
     input_amount = e['args']['inputAmount']
     output_amount = e['args']['outputAmount']
     tx = [block_number, depositor, input_token, input_amount, output_amount]
-    print(tx[1], tx[2], tx[3], tx[4])
-    print("-"*120)
+    # print(tx[1], tx[2], tx[3], tx[4])
+    # print("-"*120)
     tx_list.append(tx)
+    print("=====Pending Transfers===")
+    x  = PrettyTable()
+    header = ['block', 'address', 'inputTokenName', 'inputAmount', 'outputAmount']
+    x.field_names = header
+    x.add_rows(tx_list)
+    print(x)
 
 async def log_loop(event_filter, poll_interval, tx_list, confirmations):
     while True:
@@ -152,7 +164,7 @@ def main():
                 endBlock = session.prompt(HTML('> &#9658; End Block: '))
                 print_deposit_events(ditto_contract, int(startBlock), int(endBlock))
             elif (text == 'real time swaps'):
-                real_time_swap_events(ditto_contract, pk, 2)
+                real_time_swap_events(ditto_contract, pk, 15)
 
         except KeyboardInterrupt:
             continue  # Control-C pressed. Try again.
