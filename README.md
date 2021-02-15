@@ -1,5 +1,11 @@
 ## Updating usage instructions
 
+### Install required packages
+
+```pip install -r requirements.txt```
+
+# Sample Output
+
 ### Export Historical Swaps Output
 
 ![Alt text](ditto-sample-output.png)
