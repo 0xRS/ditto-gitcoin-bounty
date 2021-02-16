@@ -19,93 +19,87 @@ from halo import Halo
 from time import sleep
 
 @Halo(text='Sending DITTO Drops on BSC', spinner='dots')
-def send_tx(receiver, amount):
-    ditto_erc20_address = getenv('ditto_erc20')
-    pk = getenv('pk')
-    bsctestnet_rpc = getenv('bsctestnet_rpc')
-    w3b = Web3(Web3.HTTPProvider(bsctestnet_rpc))
-    acc = w3b.eth.account.from_key(pk)
+def send_tx(receiver, amount, vars):
+    # ditto_erc20_address = getenv('ditto_erc20')
+    # pk = getenv('pk')
+    # bsctestnet_rpc = getenv('bsctestnet_rpc')
+    # w3b = Web3(Web3.HTTPProvider(bsctestnet_rpc))
+    acc = vars['w3b'].eth.account.from_key(vars['pk'])
     erc20_abi = json.load(open('erc20_abi.json', 'r'))
-    erc20 = w3b.eth.contract(address=ditto_erc20_address, abi=erc20_abi)
-    nonce = w3b.eth.getTransactionCount(acc.address)
+    erc20 = vars['w3b'].eth.contract(address=vars['ditto_erc20'], abi=erc20_abi)
+    nonce = vars['w3b'].eth.getTransactionCount(acc.address)
     tx = erc20.functions.transfer(receiver, amount).buildTransaction({
-        'chainId': 97,
+        'chainId': vars['bsc_chain_id'],
         'gas': 200000,
-        'gasPrice': w3b.toWei('20', 'gwei'),
+        'gasPrice': vars['w3b'].toWei('20', 'gwei'),
         'nonce': nonce,
     })
-    signed_txn = w3b.eth.account.sign_transaction(tx, private_key=pk)
+    signed_txn = vars['w3b'].eth.account.sign_transaction(tx, private_key=vars['pk'])
 
     spinner = Halo(text='Sending Ditto Tokens to '+receiver, spinner='line')
     spinner.start()
 
-    sent_tx = w3b.eth.sendRawTransaction(signed_txn.rawTransaction)
+    sent_tx = vars['w3b'].eth.sendRawTransaction(signed_txn.rawTransaction)
 
     # wait for deployment transaction to be mined
     while True:
         try:
-            receipt = w3b.eth.getTransactionReceipt(sent_tx)
+            receipt = vars['w3b'].eth.getTransactionReceipt(sent_tx)
             if receipt:
                 break
         except:
             sleep(1)
     spinner.stop()
-    # erc20.functions.transfer(str(receiver), int(amount)).transact({"from": acc})
 
-def check_to_send(tx_list, latest_block, confirmations):
+def check_to_send(tx_list, latest_block, vars):
     while True:
         if(len(tx_list)>0):
-            if (latest_block - int(tx_list[0][0]) >= confirmations):
+            if (latest_block - int(tx_list[0][0]) >= vars['confirmations']):
                 receiver = tx_list[0][1]
                 amount = tx_list[0][4]
-                send_tx(receiver, amount)
+                send_tx(receiver, amount, vars)
                 del tx_list[0]
             else:
                 return
         else:
             return
 
-def handle_event(e, tx_list, confirmations):
+def handle_event(e, tx_list, confirmations, latest_block):
     block_number = e['blockNumber']
     depositor = e['args']['depositor']
     input_token = e['args']['input']
     input_amount = e['args']['inputAmount']
     output_amount = e['args']['outputAmount']
     tx = [block_number, depositor, input_token, input_amount, output_amount]
-    # print(tx[1], tx[2], tx[3], tx[4])
-    # print("-"*120)
     tx_list.append(tx)
-    print("=====Pending Transfers===")
+    print("=====Pending Transfers====      "+"Current Block: " + str(latest_block))
     x  = PrettyTable()
     header = ['block', 'address', 'inputTokenName', 'inputAmount', 'outputAmount']
     x.field_names = header
     x.add_rows(tx_list)
     print(x)
 
-async def log_loop(event_filter, poll_interval, tx_list, confirmations):
+async def log_loop(event_filter, poll_interval, tx_list, vars):
     while True:
-        infura_id = getenv('infura_id')
-        w3r = Web3(Web3.HTTPProvider('https://ropsten.infura.io/v3/'+infura_id))
-        latest_block = w3r.eth.getBlock('latest')['number']
+        latest_block = vars['w3e'].eth.getBlock('latest')['number']
         if(len(tx_list)>0):
-            check_to_send(tx_list, latest_block, confirmations)
-        # check_to_send(tx_list, latest_block, confirmations)
+            check_to_send(tx_list, latest_block, vars)
         for event in event_filter.get_new_entries():
-            handle_event(event, tx_list, confirmations)
+            handle_event(event, tx_list, vars['confirmations'], latest_block)
         await asyncio.sleep(poll_interval)
 
-def real_time_swap_events(ditto_contract, pk, confirmations):
-    event_filter = ditto_contract.events.SwapDeposit.createFilter(fromBlock='latest')
+def real_time_swap_events(vars):
+    event_filter = vars['swap_contract'].events.SwapDeposit.createFilter(fromBlock='latest')
     loop = asyncio.get_event_loop()
     tx_list = []
     try:
         loop.run_until_complete(
-            asyncio.gather(log_loop(event_filter, 2, tx_list, confirmations)))
+            asyncio.gather(log_loop(event_filter, 2, tx_list, vars)))
     finally:
         loop.close()
 
-def print_deposit_events(ditto_contract, fromBlock, toBlock):
-    events = ditto_contract.events.SwapDeposit.getLogs(fromBlock=fromBlock, toBlock=toBlock)
+def print_deposit_events(swap_contract, fromBlock, toBlock):
+    events = swap_contract.events.SwapDeposit.getLogs(fromBlock=fromBlock, toBlock=toBlock)
     f = open(str(fromBlock)+"-"+str(toBlock)+'.csv', 'w')
     writer = csv.writer(f)
     x  = PrettyTable()
@@ -132,17 +126,34 @@ def main():
 
     #load env
     load_dotenv('.env')
-    pk = getenv('pk')
-    infura_id = getenv('infura_id')
-    ditto_erc20 = getenv('ditto_erc20')
-    contract_address = getenv('ditto_contract')
-    bsctestnet_rpc = getenv('bsctestnet_rpc')
+    vars = {}
+    vars['pk'] = getenv('pk')
+    vars['infura_id'] = getenv('infura_id')
+    vars['ditto_erc20'] = getenv('ditto_erc20')
+    vars['swap_contract_address'] = getenv('swap_contract_address')
+    vars['bsctestnet_rpc'] = getenv('bsctestnet_rpc')
+    vars['bsc_rpc'] = getenv('bsc_rpc')
+    vars['ethereum_chain'] = getenv('ethereum_chain')
+    vars['bsc_chain'] = getenv('bsc_chain')
+    vars['bsc_chain_id'] = int(getenv('bsc_chain_id'))
+    vars['mainnet_rpc'] = getenv('mainnet_rpc')
+    vars['ropsten_rpc'] = getenv('ropsten_rpc')
+    vars['confirmations'] = int(getenv('confirmations'))
 
     #init web3
-    w3r = Web3(Web3.HTTPProvider('https://ropsten.infura.io/v3/'+infura_id))
-    w3b = Web3(Web3.HTTPProvider(bsctestnet_rpc))
-    ditto_contract = w3r.eth.contract(address=contract_address, abi=abi)
 
+    #set ropsten or mainnet
+    if vars['ethereum_chain'] == 'mainnet':
+        w3e = Web3(Web3.HTTPProvider(vars['mainnet_rpc']+vars['infura_id']))
+    else:
+        w3e = Web3(Web3.HTTPProvider(vars['ropsten_rpc']+vars['infura_id']))
+    vars['w3e'] = w3e
+    if vars['bsc_chain'] == 'mainnet':
+        w3b = Web3(Web3.HTTPProvider(vars['bsc_rpc']))
+    else:
+        w3b = Web3(Web3.HTTPProvider(vars['bsctestnet_rpc']))
+    vars['w3b'] = w3b
+    vars['swap_contract'] = w3e.eth.contract(address=vars['swap_contract_address'], abi=abi)
     #init prompt toolkit
     completer = WordCompleter(['historical swaps', 'real time swaps'])
     style = Style.from_dict({
@@ -161,9 +172,9 @@ def main():
             if (text == 'historical swaps'):
                 startBlock = session.prompt(HTML('> &#9658; Start Block: '))
                 endBlock = session.prompt(HTML('> &#9658; End Block: '))
-                print_deposit_events(ditto_contract, int(startBlock), int(endBlock))
+                print_deposit_events(vars['swap_contract'], int(startBlock), int(endBlock))
             elif (text == 'real time swaps'):
-                real_time_swap_events(ditto_contract, pk, 15)
+                real_time_swap_events(vars)
 
         except KeyboardInterrupt:
             continue  # Control-C pressed. Try again.

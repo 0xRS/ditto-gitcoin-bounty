@@ -9,14 +9,14 @@ import random
 def main():
     load_dotenv('.env')
     pk = getenv('pk')
-    ditto_contract_address = getenv('ditto_contract')
+    swap_contract_address = getenv('swap_contract_address')
     mock_erc20_address = getenv('mock_erc20')
     accounts.add(pk)
     abi = json.load(open('abi.json', 'r'))
-    # erc20_abi = json.load(open('erc20_abi.json', 'r'))
-    # mockerc20 = Contract.from_abi("Mock ERC20", mock_erc20_address, erc20_abi)
-    swap_contract = Contract.from_abi("Swap Contract", ditto_contract_address, abi)
-    # mockerc20.approve(ditto_contract_address, 10**30, {"from": accounts[0], "allow_revert": True})
+    erc20_abi = json.load(open('erc20_abi.json', 'r'))
+    mockerc20 = Contract.from_abi("Mock ERC20", mock_erc20_address, erc20_abi)
+    swap_contract = Contract.from_abi("Swap Contract", swap_contract_address, abi)
+    mockerc20.approve(swap_contract_address, 10**30, {"from": accounts[0], "allow_revert": True})
 
     while True:
         amount = random.randint(1, 10)
