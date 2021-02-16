@@ -20,10 +20,6 @@ from time import sleep
 
 @Halo(text='Sending DITTO Drops on BSC', spinner='dots')
 def send_tx(receiver, amount, vars):
-    # ditto_erc20_address = getenv('ditto_erc20')
-    # pk = getenv('pk')
-    # bsctestnet_rpc = getenv('bsctestnet_rpc')
-    # w3b = Web3(Web3.HTTPProvider(bsctestnet_rpc))
     acc = vars['w3b'].eth.account.from_key(vars['pk'])
     erc20_abi = json.load(open('erc20_abi.json', 'r'))
     erc20 = vars['w3b'].eth.contract(address=vars['ditto_erc20'], abi=erc20_abi)
